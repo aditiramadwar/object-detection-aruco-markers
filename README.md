@@ -19,7 +19,17 @@ add video
     python3 gen_aruco.py  --output data/aruco_marker.png --id 0 --type DICT_4X4_50
    Save the images and pdf and take clear print outs of these markers.
 
+### Calibrate Camera
+
+#### Take calibration images
+    python3 take_images.py
+
+#### Calibration
+    python calibration.py --dir calib_images/ --square_size 0.03
+
+
 ### References
 1. [pyimagesearch.com/generating-aruco-markers-with-opencv-and-python/](https://www.pyimagesearch.com/2020/12/14/generating-aruco-markers-with-opencv-and-python/)
-2.  [pyimagesearch.com/detecting-aruco-markers-with-opencv-and-python/](https://www.pyimagesearch.com/2020/12/21/detecting-aruco-markers-with-opencv-and-python/)
-2. [OpenCV.rectangle()](https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html#gac865734d137287c0afb7682ff7b3db23)
+2. [pyimagesearch.com/detecting-aruco-markers-with-opencv-and-python/](https://www.pyimagesearch.com/2020/12/21/detecting-aruco-markers-with-opencv-and-python/)
+3. [OpenCV.rectangle()](https://docs.opencv.org/4.x/d6/d6e/group__imgproc__draw.html#gac865734d137287c0afb7682ff7b3db23)
+4. [ArUCo-Markers-Pose-Estimation-Generation-Python](https://github.com/GSNCodes/ArUCo-Markers-Pose-Estimation-Generation-Python)
