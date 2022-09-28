@@ -33,7 +33,7 @@ while True:
 	# press the 'q' key to exit
 	if k & 0xFF == ord('q'):
 		print("Exiting...")	
-		cam.release()
-		cv2.destroyAllWindows()
 		break
+cam.release()
+cv2.destroyAllWindows()
 print("Exited out of the code.")
