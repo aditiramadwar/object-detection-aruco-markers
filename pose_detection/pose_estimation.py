@@ -10,32 +10,44 @@ import sys
 #from utils import ARUCO_DICT
 import argparse
 import time
+homogeneous_rotation_matrix = np.array([[0, 0, 0, 0],
+                                        [0, 0, 0, 0],
+                                        [0, 0, 0, 0],
+                                        [0, 0, 0, 1]],
+                                        dtype=float)
+# data to get from planner
+# def pose_camera_in_world()
 
-ARUCO_DICT = {
-	"DICT_4X4_50": cv2.aruco.DICT_4X4_50,
-	"DICT_4X4_100": cv2.aruco.DICT_4X4_100,
-	"DICT_4X4_250": cv2.aruco.DICT_4X4_250,
-	"DICT_4X4_1000": cv2.aruco.DICT_4X4_1000,
-	"DICT_5X5_50": cv2.aruco.DICT_5X5_50,
-	"DICT_5X5_100": cv2.aruco.DICT_5X5_100,
-	"DICT_5X5_250": cv2.aruco.DICT_5X5_250,
-	"DICT_5X5_1000": cv2.aruco.DICT_5X5_1000,
-	"DICT_6X6_50": cv2.aruco.DICT_6X6_50,
-	"DICT_6X6_100": cv2.aruco.DICT_6X6_100,
-	"DICT_6X6_250": cv2.aruco.DICT_6X6_250,
-	"DICT_6X6_1000": cv2.aruco.DICT_6X6_1000,
-	"DICT_7X7_50": cv2.aruco.DICT_7X7_50,
-	"DICT_7X7_100": cv2.aruco.DICT_7X7_100,
-	"DICT_7X7_250": cv2.aruco.DICT_7X7_250,
-	"DICT_7X7_1000": cv2.aruco.DICT_7X7_1000,
-	"DICT_ARUCO_ORIGINAL": cv2.aruco.DICT_ARUCO_ORIGINAL,
-	"DICT_APRILTAG_16h5": cv2.aruco.DICT_APRILTAG_16h5,
-	"DICT_APRILTAG_25h9": cv2.aruco.DICT_APRILTAG_25h9,
-	"DICT_APRILTAG_36h10": cv2.aruco.DICT_APRILTAG_36h10,
-	"DICT_APRILTAG_36h11": cv2.aruco.DICT_APRILTAG_36h11
-}
+def get_homogeneous_matrix(pose):
+    rot, tvec = pose
+    # homogeneous matrix 4x4 [r|t]
+    homogeneous_rotation_matrix[:3, :3] = rot
+    homogeneous_rotation_matrix[:3, 3] = tvec
+    print("homogeneous_rotation_matrix: \n", homogeneous_rotation_matrix)
+    return homogeneous_rotation_matrix
 
-def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coefficients, marker_length):
+
+def pose_marker_in_world(Twc, poses):
+    all_Twa = []
+    for i in range(len(poses)):
+        rvec, tvec = poses[i]
+        # Convert Rotation vector to matrix
+        rot, _ = cv2.Rodrigues(rvec) 	
+        # print("Rotation 3x3: \n", rot)
+
+        get_homogeneous_matrix([rot, tvec])
+
+        # covert reference frame
+        # need to refine calculation. output not consistent
+        Twa = Twc @ homogeneous_rotation_matrix
+        # print("Twa: \n", Twa)
+
+        all_Twa.append(Twa)
+
+    return all_Twa
+
+
+def aruco_pose_esitmation(frame, camera, marker_length, Twc):
 
     '''
     frame - Frame from the video stream
@@ -47,49 +59,41 @@ def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coef
     '''
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    cv2.aruco_dict = cv2.aruco.Dictionary_get(aruco_dict_type)
+    cv2.aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
     parameters = cv2.aruco.DetectorParameters_create()
 
 
-    corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict,parameters=parameters)
-    homogeneous_rotation_matrix = np.array([[0, 0, 0, 0],
-                                            [0, 0, 0, 0],
-                                            [0, 0, 0, 0],
-                                            [0, 0, 0, 1]],
-                                            dtype=float)
+    corners, ids, _ = cv2.aruco.detectMarkers(gray, cv2.aruco_dict,parameters=parameters)
+
+    marker_poses = [None]*len(corners)
         # If markers are detected
     if len(corners) > 0:
         for i in range(0, len(ids)):
             # Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
-            rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], marker_length, matrix_coefficients,
-                                                                       distortion_coefficients)
+            rvec, tvec, _ = cv2.aruco.estimatePoseSingleMarkers(corners[i], marker_length, camera[0],
+                                                                       camera[1])
+            vec = [rvec, tvec]
+            marker_poses[i]=vec
             # print("For Marker", i, "the depth is:",tvec[0][0][2])
-            print("Marker: ", i)
+            # print("Marker: ", i)
 
             # rvec = [theta_x, theta_y, theta_z]
             # print("Rotation 3x1:", rvec)
 
-            # Convert Rotation vector to matrix
-            rot, _ = cv2.Rodrigues(rvec) 	
-            # print("Rotation 3x3: \n", rot)
 
             # tvec = [tx, ty, tz]
             # print("Translation:", tvec)
 
-            # homogeneous matrix 4x4 [r|t]
-            homogeneous_rotation_matrix[:3, :3] = rot
-            homogeneous_rotation_matrix[:3, 3] = tvec
-            print("homogeneous_rotation_matrix: \n", homogeneous_rotation_matrix)
 
             # Draw a square around the markers
             cv2.aruco.drawDetectedMarkers(frame, corners) 
 
             # Draw Axis
-            cv2.drawFrameAxes(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.1)  
+            cv2.drawFrameAxes(frame, camera[0], camera[1], rvec, tvec, 0.1)  
     else:
         print("No marker found!")
 
-    return frame
+    return frame, marker_poses
 
 if __name__ == '__main__':
 
@@ -100,7 +104,6 @@ if __name__ == '__main__':
 
     args = vars(ap.parse_args())
 
-    aruco_dict_type = cv2.aruco.DICT_4X4_50
     marker_length = args["marker_length"]
     #calibration_matrix_path = args["K_Matrix"]
     #distortion_coefficients_path = args["D_Coeff"]
@@ -114,14 +117,26 @@ if __name__ == '__main__':
 
     video = cv2.VideoCapture(0)
     time.sleep(2.0)
-
+    # this matrix will be a paramter to this function (we will subscribe to the planner for this data)
+    # Twa = Twc*Tca
+    Twc = np.array([[1, 0, 0, 10],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1]],
+                    dtype=float)
+    camera_intrincics = [k, d]
     while True:
         ret, frame = video.read()
 
         if not ret:
             break
         
-        output = pose_esitmation(frame, aruco_dict_type, k, d, marker_length)
+        output, all_poses = aruco_pose_esitmation(frame, camera_intrincics, marker_length, Twc)
+
+        # this calculation needs to be refined
+        markers = pose_marker_in_world(Twc, all_poses)
+        for i in range(len(markers)):
+            print("Marker ",i," pose wrt world frame:\n", markers[i])
 
         cv2.imshow('Estimated Pose', output)
 
