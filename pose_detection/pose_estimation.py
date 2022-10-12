@@ -52,19 +52,42 @@ def pose_esitmation(frame, aruco_dict_type, matrix_coefficients, distortion_coef
 
 
     corners, ids, rejected_img_points = cv2.aruco.detectMarkers(gray, cv2.aruco_dict,parameters=parameters)
-
+    homogeneous_rotation_matrix = np.array([[0, 0, 0, 0],
+                                            [0, 0, 0, 0],
+                                            [0, 0, 0, 0],
+                                            [0, 0, 0, 1]],
+                                            dtype=float)
         # If markers are detected
     if len(corners) > 0:
         for i in range(0, len(ids)):
             # Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
             rvec, tvec, markerPoints = cv2.aruco.estimatePoseSingleMarkers(corners[i], marker_length, matrix_coefficients,
                                                                        distortion_coefficients)
-            print("For Marker", i, "the depth is:",tvec[0][0][2])
+            # print("For Marker", i, "the depth is:",tvec[0][0][2])
+            print("Marker: ", i)
+
+            # rvec = [theta_x, theta_y, theta_z]
+            # print("Rotation 3x1:", rvec)
+
+            # Convert Rotation vector to matrix
+            rot, _ = cv2.Rodrigues(rvec) 	
+            # print("Rotation 3x3: \n", rot)
+
+            # tvec = [tx, ty, tz]
+            # print("Translation:", tvec)
+
+            # homogeneous matrix 4x4 [r|t]
+            homogeneous_rotation_matrix[:3, :3] = rot
+            homogeneous_rotation_matrix[:3, 3] = tvec
+            print("homogeneous_rotation_matrix: \n", homogeneous_rotation_matrix)
+
             # Draw a square around the markers
             cv2.aruco.drawDetectedMarkers(frame, corners) 
 
             # Draw Axis
-            cv2.drawFrameAxes(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)  
+            cv2.drawFrameAxes(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.1)  
+    else:
+        print("No marker found!")
 
     return frame
 
@@ -73,17 +96,11 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     #ap.add_argument("-k", "--K_Matrix", required=True, help="Path to calibration matrix (numpy file)")
     #ap.add_argument("-d", "--D_Coeff", required=True, help="Path to distortion coefficients (numpy file)")
-    ap.add_argument("-t", "--type", type=str, default="DICT_ARUCO_ORIGINAL", help="Type of ArUCo tag to detect")
     ap.add_argument("-m", "--marker_length", type=float, default=0.2, help="Length of ArUCo tag to detect(in meters)")
 
     args = vars(ap.parse_args())
 
-    
-    if ARUCO_DICT.get(args["type"], None) is None:
-        print(f"ArUCo tag type '{args['type']}' is not supported")
-        sys.exit(0)
-
-    aruco_dict_type = ARUCO_DICT[args["type"]]
+    aruco_dict_type = cv2.aruco.DICT_4X4_50
     marker_length = args["marker_length"]
     #calibration_matrix_path = args["K_Matrix"]
     #distortion_coefficients_path = args["D_Coeff"]

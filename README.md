@@ -43,13 +43,13 @@ Code is designed to detect two markers of the same dimentions at the same time.
 Marker of length 11cm
 	
     cd pose_detection
-    python3 pose_estimation.py --type DICT_4X4_50 --marker_length 0.11
+    python3 pose_estimation.py --marker_length 0.11
 ![pose_big_marker](https://github.com/aditiramadwar/object-detection-aruco-markers/blob/main/data/pose_big_marker.png)
 
 Marker of length 20cm:
 
     cd pose_detection
-    python3 pose_estimation.py --type DICT_4X4_50 --marker_length 0.2
+    python3 pose_estimation.py --marker_length 0.2
 ![pose_small_marker](https://github.com/aditiramadwar/object-detection-aruco-markers/blob/main/data/pose_small_marker.png)
 
 ## References
