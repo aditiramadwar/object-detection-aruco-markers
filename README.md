@@ -13,6 +13,7 @@ All the data files are saved in the data/ folder.
     cd marker_generation/
     python3 gen_aruco.py --id 0
    ![marker id 0 image](https://github.com/aditiramadwar/object-detection-aruco-markers/blob/main/markers/0.png)
+   
    Save the images and pdf and take clear print outs of these markers.
    
 ## Detect Aruco Markers
